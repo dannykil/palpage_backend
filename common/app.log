@@ -1,0 +1,2 @@
+{"timestamp": "2025-03-23 16:05:15,910", "filename": "logger2.py", "lineno": 35, "message": "This is an info message.", "level": "INFO", "name": "__main__"}
+{"timestamp": "2025-03-23 16:05:15,910", "filename": "logger2.py", "lineno": 36, "message": "This is a warning message.", "level": "WARNING", "name": "__main__"}

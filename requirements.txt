@@ -1,0 +1,16 @@
+setuptools==75.8.0
+wheel==0.45.1
+google-api-python-client
+google-auth 
+google-auth-oauthlib 
+google-auth-httplib2
+flask
+requests
+flask-cors
+psycopg2-binary
+google-cloud-discoveryengine
+pytest
+pytz
+redis
+PyJWT
+python-dotenv
