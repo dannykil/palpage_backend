@@ -27,6 +27,6 @@ def test_api_post_method():
     print(response.status_code)
     assert response.status_code == 405
 
-test_api_success()
-test_api_failure()
-test_api_post_method()
+# test_api_success()
+# test_api_failure()
+# test_api_post_method()

@@ -14,3 +14,5 @@ pytz
 redis
 PyJWT
 python-dotenv
+google-cloud-secret-manager
+flask_cors

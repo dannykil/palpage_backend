@@ -32,3 +32,7 @@ ENV=dev python main.py
 
 # 운영 환경
 ENV=prd python main.py
+
+
+which python
+/opt/anaconda3/envs/8page_backend/bin/python
