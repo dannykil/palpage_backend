@@ -50,16 +50,9 @@ def specific_api_filter():
             # Error   : 갱신 > 새로 생성
             # result = checkTokenValidation()
             result = checkTokenValidation(accessToken, refreshToken)
-            # print("result : ", result)
 
             if result == "Exist":
                 print("Exist")
-
-                # try:
-                #     print("Exist")
-                # except requests.exceptions.RequestException as e:
-                #     # print(f"An error occurred: {e}")
-                #     print(f"An error occurred:")
             
             elif result == "Expired":
                 response = getTokenRefreshed()
