@@ -4,7 +4,7 @@ import flask, requests
 from flask import jsonify, request, make_response, Blueprint
 import datetime
 import time
-# from datetime import datetime
+# from datetime import datetimef
 import pytz
 import psycopg2
 import os
@@ -78,8 +78,8 @@ def authorize():
         flask.session['state'] = state
         print("authorization_url : ", authorization_url)
 
-        return flask.redirect(authorization_url)
-        # return jsonify({'authorizationUrl': authorization_url})
+        # return flask.redirect(authorization_url)
+        return jsonify({'authorizationUrl': authorization_url})
     
     except Exception as e:
         logger.LoggerFactory._LOGGER.info("에러발생 : ", e)
