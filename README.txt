@@ -36,3 +36,14 @@ ENV=prd python main.py
 
 which python
 /opt/anaconda3/envs/8page_backend/bin/python
+
+
+# redis container 사용법
+1) container 접속
+docker exec -it 03af7f472d81 /bin/bash
+
+2) redis-cli 접속
+redis-cli
+
+3) test(생성된 key 전체목록 조회)
+keys *
