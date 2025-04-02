@@ -16,3 +16,4 @@ PyJWT
 python-dotenv
 google-cloud-secret-manager
 flask_cors
+google.cloud.logging
