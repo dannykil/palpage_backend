@@ -1,36 +1,11 @@
-import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import flask, requests
 from flask import jsonify, request, make_response, Blueprint
-import datetime
-import time
-# from datetime import datetimef
-import pytz
-import psycopg2
-import os
 import json
-import redis
-from common import logger
+from common import logger, getEnv
 from auth.secretManager import access_secret_version
-import jwt
-from dotenv import load_dotenv
-from flask_cors import cross_origin
 
-def load_environment_variables(env_file):
-    """환경 변수 파일을 로드합니다."""
-    load_dotenv(dotenv_path=env_file)
-
-def get_environment_variable(key):
-    """환경 변수 값을 가져옵니다."""
-    return os.getenv(key)
-
-# 환경 변수 로드 (빌드 시 환경에 따라 파일 선택)
-if os.environ.get('ENV') == 'prd':
-    load_environment_variables('.env.prd')
-else:
-    load_environment_variables('.env.dev')
-
-REDIRECT_URL = get_environment_variable('REDIRECT_URL')
+REDIRECT_URL = getEnv.get_environment_variable('REDIRECT_URL')
 CLIENT_SECRET = access_secret_version()
 
 oauth2Authorization = Blueprint('oauth2Authorization', __name__, url_prefix='/api/oauth2')
