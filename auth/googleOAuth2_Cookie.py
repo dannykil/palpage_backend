@@ -93,7 +93,6 @@ def oauth2callback():
     # logger.LoggerFactory._LOGGER.info("oauth2callback()")
 
     flow = google_auth_oauthlib.flow.Flow.from_client_config(CLIENT_SECRET, scopes=SCOPES)
-    # flow.redirect_uri = 'http://localhost:8000/api/oauth2/code'
     flow.redirect_uri = REDIRECT_URL
     
     authorization_response = flask.request.url
@@ -103,10 +102,8 @@ def oauth2callback():
     # print(credentials.__dict__) # flow.credentials 내부 상세 속성 확인(중요)
     
     # response = make_response("쿠키 설정 완료!")
-    # response = make_response(flask.redirect('/api/data'))
     response = make_response(flask.redirect('http://localhost:3000/test'))
     # response = make_response(flask.redirect('http://localhost:3000'))
-    # response = make_response(response)
     # response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000/test")
     # response.headers.add("Access-Control-Allow-Credentials", "true")
     response.set_cookie("token", credentials.token)
@@ -118,7 +115,7 @@ def oauth2callback():
 
 def checkTokenValidation(token, refreshToken):
     print("checkTokenValidation()")
-    print("token : ", token)
+    # print("token : ", token)
     # logger.LoggerFactory._LOGGER.info("checkTokenValidation()")
     """세션에 액세스 토큰 만료 시간이 있고 만료되었는지 확인합니다."""
 
@@ -148,72 +145,10 @@ def checkTokenValidation(token, refreshToken):
         except requests.exceptions.RequestException as e:
             print(f"tokeninfo 요청 실패: {e}")
             return "Error"
-        
-
-# def checkTokenValidation():
-#     print("checkTokenValidation()")
-#     # logger.LoggerFactory._LOGGER.info("checkTokenValidation()")
-#     """세션에 액세스 토큰 만료 시간이 있고 만료되었는지 확인합니다."""
-
-#     try:
-#         cookies = request.cookies  # 모든 쿠키 값을 딕셔너리 형태로 가져옵니다.
-#         # print("request.url : ", request.url)
-#         print("cookies : ", cookies)
-
-#         if cookies.get("token") is not None:
-#         # if cookies.get("id_token") is not None:
-#             token = cookies.get("token")
-#             # print("token : ", token)
-
-#             # id_token = cookies.get("id_token")
-#             # print("id_token : ", id_token)
-
-#             """Google tokeninfo 엔드포인트를 사용하여 액세스 토큰의 유효성을 확인합니다."""
-#             tokeninfo_url = 'https://oauth2.googleapis.com/tokeninfo'
-#             params = {'access_token': token}
-
-#             try:
-#                 response = requests.get(tokeninfo_url, params=params)
-#                 # response.raise_for_status()  # 상태 코드가 200 OK가 아니면 예외 발생
-#                 token_info = response.json()
-#                 # print("token_info : ", token_info)
-#                 print("token_info['expires_in'] : ", token_info['expires_in'])
-
-#                 if int(token_info['expires_in']) > 3550:
-#                     print("Access Token이 유효합니다.")
-#                     # return True
-#                     # return 'http://localhost:8000/api/oauth2'
-#                     return "Exist"
-#                 else:
-#                     # refresh_token = cookies.get("refresh_token")
-#                     if cookies.get("refresh_token") is not None:
-#                         print("Access Token이 만료됐습니다.")
-#                         return "Expired"
-#                     else:
-#                         print("*Refresh Token이 없습니다.")
-#                         return "Error"
-                
-#                 # 'error' 키가 없으면 토큰이 유효한 것으로 간주 (만료되었을 수도 있음)
-#                 # if 'error' in token_info:
-#                 #     print(f"액세스 토큰이 유효하지 않습니다: {token_info['error_description']}")
-#                 #     result = getTokenRefreshed()
-#                 #     return False
-#                 # else:
-#                 #     print("액세스 토큰 정보:", token_info)
-#                 #     # 'expires_in' 값을 통해 만료 여부를 추가적으로 확인할 수 있습니다.
-#                 #     return True
-                
-#             except requests.exceptions.RequestException as e:
-#                 print(f"tokeninfo 요청 실패: {e}")
-#                 # return False
-#                 return "Error"
-
-#         else:
-#             # return False
-#             return "Error"
     
     except Exception as e:
         print(f"checkTokenValidation() 오류: {e}")
+        return "Error"
         # logger.LoggerFactory._LOGGER.info("checkTokenValidation()")
 
 
