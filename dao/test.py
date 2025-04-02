@@ -43,3 +43,44 @@ def get_test_data():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# from flask import Flask, jsonify
+# from flask_cors import CORS
+import json
+# import os
+from datetime import datetime
+
+# app = Flask(__name__)
+# CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+
+# file_handler = logging.FileHandler('./log/' + datetime.now().strftime('%Y') + '/' + datetime.now().strftime('%m') + '/' + datetime.now().strftime('%Y%m%d') +'.log')
+# LOG_FILE_PATH = 'your_log_file.json'  # 실제 로그 파일 경로로 변경
+LOG_FILE_PATH = './log/' + datetime.now().strftime('%Y') + '/' + datetime.now().strftime('%m') + '/' + datetime.now().strftime('%Y%m%d') +'.log'
+
+@testData.route('/api/logs', methods=['GET'])
+@testData.route('/api/logs/', methods=['GET'])
+def get_logs():
+    print("get_logs()")
+    print("LOG_FILE_PATH : ", LOG_FILE_PATH)
+
+    try:
+        if os.path.exists(LOG_FILE_PATH):
+            with open(LOG_FILE_PATH, 'r', encoding='utf-8') as f:
+                try:
+                    logs = [json.loads(line) for line in f]
+                    # print("logs : ", logs)
+                    # return jsonify(logs)
+                    # return jsonify({"rows": logs})
+                    response = jsonify({"rows": logs})
+                    response.headers.add("Access-Control-Allow-Credentials", "true")
+                    return response
+                except json.JSONDecodeError as e:
+                    return jsonify({"error": f"JSON decoding error in log file: {e}"}), 500
+        else:
+            return jsonify({"error": f"Log file not found at: {LOG_FILE_PATH}"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Error reading log file: {e}"}), 500
+
+# if __name__ == '__main__':
+#     app.run(debug=True, port=8000)
