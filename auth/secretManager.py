@@ -23,7 +23,7 @@ def access_secret_version():
 
     import json    
     client_config = json.loads(payload)
-    print(f"Client client_config     : {client_config}")
+    # print(f"Client client_config     : {client_config}")
 
     # client_id와 client_secret 추출
     # client_id = client_config['web']['client_id']
