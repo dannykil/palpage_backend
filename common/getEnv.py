@@ -1,6 +1,13 @@
 
 from dotenv import load_dotenv
 import os
+import sys
+
+# getEnv.py 파일이 있는 경로를 sys.path에 추가
+common_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(common_dir)
+import getEnv
+# print("common_dir : ", common_dir)
 
 def load_environment_variables(env_file):
     """환경 변수 파일을 로드합니다."""

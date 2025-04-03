@@ -1,22 +1,23 @@
 from flask import Flask, jsonify, Blueprint, request
 import psycopg2
 import os
-from common import getEnv
+from common import logger, getEnv
 
 # testData = Blueprint('testData', __name__, url_prefix='/api/data')
 testData = Blueprint('testData', __name__)
 
 # 환경 변수 또는 보안 파일에서 데이터베이스 연결 정보 로드
-DB_HOST = getEnv.get_environment_variable('DB_HOST')
-DB_USER = getEnv.get_environment_variable('DB_USER')
+DB_HOST     = getEnv.get_environment_variable('DB_HOST')
+DB_USER     = getEnv.get_environment_variable('DB_USER')
 DB_PASSWORD = getEnv.get_environment_variable('DB_PASSWORD')
-DB_NAME = getEnv.get_environment_variable('DB_NAME')
-DB_PORT = getEnv.get_environment_variable('DB_PORT')
+DB_NAME     = getEnv.get_environment_variable('DB_NAME')
+DB_PORT     = getEnv.get_environment_variable('DB_PORT')
 
 # @testData.route('/', methods=['GET'])
 @testData.route('/api/data', methods=['GET'])
 @testData.route('/api/data/', methods=['GET'])
 def get_test_data():
+    # logger.LoggerFactory._LOGGER.info("get_test_data()")
     
     try:
         conn = psycopg2.connect(
@@ -35,6 +36,7 @@ def get_test_data():
         conn.close()
 
         print('rows : ', rows)
+        # logger.LoggerFactory._LOGGER.info("rows : {}".format(rows))
 
         response = jsonify({"rows": rows})
         # response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000/test")
@@ -85,3 +87,4 @@ def get_logs():
 
 # if __name__ == '__main__':
 #     app.run(debug=True, port=8000)
+# get_test_data()
