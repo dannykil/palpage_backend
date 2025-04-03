@@ -4,6 +4,8 @@ from flask import jsonify, request, make_response, Blueprint
 import json
 from common import logger, getEnv
 from auth.secretManager import access_secret_version
+from dao.refresh_token import insert_refresh_token
+import jwt
 
 REDIRECT_URL = getEnv.get_environment_variable('REDIRECT_URL')
 CLIENT_SECRET = access_secret_version()
@@ -18,7 +20,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly',
 @oauth2Authorization.route('/', methods=['GET'])
 def authorize(): 
     print("authorize()")
-    # logger.LoggerFactory._LOGGER.info("authorize")
+    logger.LoggerFactory._LOGGER.info("authorize")
 
     try:
         # Required, call the from_client_secrets_file method to retrieve the client ID from a
@@ -74,18 +76,62 @@ def oauth2callback():
     
     flow.fetch_token(authorization_response=authorization_response)
     credentials = flow.credentials
+    # print("credentials : ", credentials)
     # print(credentials.__dict__) # flow.credentials 내부 상세 속성 확인(중요)
-    
-    # response = make_response("쿠키 설정 완료!")
-    response = make_response(flask.redirect('http://localhost:3000/test'))
-    # response = make_response(flask.redirect('http://localhost:3000'))
-    # response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000/test")
-    # response.headers.add("Access-Control-Allow-Credentials", "true")
-    response.set_cookie("token", credentials.token)
-    response.set_cookie("refresh_token", credentials.refresh_token)
-    response.set_cookie("id_token", credentials.id_token)
 
-    return response
+    id_token_jwt = credentials.id_token
+
+    try:
+        # JWT 디코딩 (서명 검증 없이)
+        decoded_payload = jwt.decode(id_token_jwt, options={"verify_signature": False})
+        print("Decoded Payload:", decoded_payload)
+
+        # 디코딩된 페이로드에서 이메일 주소 추출
+        email = decoded_payload.get('email')
+        print("Extracted Email:", email)
+
+        # 추가적인 검증 (만료 시간, 발행자, audience)을 수행해야 합니다.
+        # 예시:
+        # if decoded_payload.get('iss') != 'https://accounts.google.com' and decoded_payload.get('iss') != 'accounts.google.com':
+        #     print("잘못된 발행자")
+        #     return make_response("잘못된 발행자", 401)
+        # if decoded_payload.get('aud') != CLIENT_SECRET['web']['client_id']:
+        #     print("잘못된 Audience")
+        #     return make_response("잘못된 Audience", 401)
+        # # 만료 시간 검증은 더 복잡하게 구현해야 합니다.
+
+        response = make_response(flask.redirect('http://localhost:3000/test'))
+        response.set_cookie("token", credentials.token)
+        response.set_cookie("refresh_token", credentials.refresh_token)
+        response.set_cookie("id_token", id_token_jwt)
+        response.set_cookie("email", email)
+
+        # if 'refresh_token' in request.cookies:
+        #     response.delete_cookie('refresh_token')
+        # if 'id_token' in request.cookies:
+        #     response.delete_cookie('id_token')
+        # if 'email' in request.cookies:
+        #     response.delete_cookie('email')
+
+        user_id = email # 이메일을 user_id로 사용
+        insert_refresh_token(credentials.refresh_token, credentials.token, user_id, CLIENT_SECRET['web']['client_id'])
+        return response
+
+    except jwt.exceptions.DecodeError as e:
+        print(f"JWT 디코딩 오류: {e}")
+        return make_response("JWT 디코딩 오류", 401)
+    
+    # # response = make_response("쿠키 설정 완료!")
+    # response = make_response(flask.redirect('http://localhost:3000/test'))
+    # # response = make_response(flask.redirect('http://localhost:3000'))
+    # # response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000/test")
+    # # response.headers.add("Access-Control-Allow-Credentials", "true")
+    # response.set_cookie("token", credentials.token)
+    # # response.set_cookie("refresh_token", credentials.refresh_token)
+    # response.set_cookie("id_token", credentials.id_token)
+    # insert_refresh_token(credentials.refresh_token, credentials.token, user_id, CLIENT_SECRET['web']['client_id'])
+
+    # return response
 
 
 def checkTokenValidation(token, refreshToken):
