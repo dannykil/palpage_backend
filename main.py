@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, redirect, Blueprint, make_response
 from flask_cors import CORS
 # from auth.googleOAuth2 import oauth2Authorization, checkAuthorization
-from auth.googleOAuth2_Cookie import oauth2Authorization, checkTokenValidation, getTokenRefreshed
+from auth.googleOAuth2_Cookie import authorize, oauth2Authorization, checkTokenValidation, getTokenRefreshed
 # from auth.googleOAuth2_Redis import oauth2Authorization, checkTokenValidation, getTokenRefreshed
 from dao.test import testData
 import secrets
@@ -39,74 +39,79 @@ def specific_api_filter():
             # print("request.headers : ", request.headers)
             
             cookies = request.cookies  # 모든 쿠키 값을 딕셔너리 형태로 가져옵니다.
-            print("cookies.get('token') : ", cookies.get("token"))
-            print("cookies.get('refresh_token') : ", cookies.get("refresh_token"))
 
-            accessToken = cookies.get("token")
-            refreshToken = cookies.get("refresh_token")
-            # if request.headers.get('Authorization') is not None:
-            #     print("request.headers.get('Authorization') : ", request.headers.get('Authorization'))
-            #     accessToken = request.headers.get('Authorization')
+            if cookies.get("token") is not None:
+                token = cookies.get("token")
 
-            # Exist   : 새로 생성
-            # Expired : 갱신
-            # Error   : 갱신 > 새로 생성
-            # result = checkTokenValidation()
-            result = checkTokenValidation(accessToken, refreshToken)
+                result = checkTokenValidation(token)
 
-            if result == "Exist":
-                print("Exist")
-            
-            elif result == "Expired":
-                response = getTokenRefreshed()
+                if result == False:
+                    print("access token is expired")
+                    new_access_token = getTokenRefreshed(token)
 
-                if response is not None:
-                    print("Expired")
-                    # print("response : ", response)
-                    resp = make_response(redirect(request.url))
-                    # resp = make_response(redirect('http://localhost:3000/test')) # CORS 문제 발생
-                    data = response.json()
-                    resp.set_cookie("token", data["access_token"])
-                    resp.headers.add("Access-Control-Allow-Credentials", "true")
-                    return resp
-                
-                else:
-                    # print("None")
-                    # return redirect('http://localhost:8000/api/oauth2')
-                    # return jsonify({'authorizationUrl': 'http://localhost:8000/api/oauth2'})
-                    # resp = make_response(redirect(request.url))
-                    resp = make_response(redirect('http://localhost:8000/api/oauth2'))
+                    if new_access_token is not None:
+                        print("access token is refreshed")
+                        response = make_response(redirect(request.url))
+                        response.set_cookie("token", new_access_token)
+                        response.headers.add("Access-Control-Allow-Credentials", "true")
 
-                    cookies = request.cookies  # 모든 쿠키 값을 딕셔너리 형태로 가져옵니다.
+                        return response
                     
-                    if cookies.get("token") is not None:
-                        resp.delete_cookie("token")
-                        print("'token' 쿠키 삭제")
-                    
-                    # resp.headers.add("Access-Control-Allow-Credentials", "true")
-                    return resp
+                    # 액세스토큰 갱신 불가
+                    else:
+                        print("access token cannot be refreshed")
+                        response = make_response(jsonify({'result': False, 'message': 'access token cannot be refreshed'}), 401)
+                        response.headers.add("Access-Control-Allow-Credentials", "true")
+
+                        return response
             
+            # 쿠키에 토큰이 없는 경우
             else:
-                print("Error which is Expired")
-                # return redirect('http://localhost:8000/api/oauth2')
-                # return jsonify({'authorizationUrl': 'http://localhost:8000/api/oauth2'})
-                # resp = make_response(redirect('http://localhost:8000/api/oauth2'))
-                resp = make_response(redirect(request.url))
-
-                cookies = request.cookies  # 모든 쿠키 값을 딕셔너리 형태로 가져옵니다.
-                
-                if cookies.get("token") is not None:
-                    resp.delete_cookie("token")
-                    resp.headers.add("Access-Control-Allow-Credentials", "true")
-                    print("'token' 쿠키 삭제")
+                print("No token in cookie")
+                # resp = make_response(redirect(request.url))
+                resp = make_response(redirect('http://localhost:8000/api/oauth2'))
 
                 return resp
+                # resp = make_response(redirect(request.url))
+                # return resp
+                # return redirect('http://localhost:8000/api/oauth2')
+                # try:
+                #     # response = requests.get('http://localhost:8000/api/oauth2')
+                #     # response.raise_for_status()  # HTTP 오류 발생 시 예외 발생
+                #     response = authorize()
+                #     print("response : ", response)
+
+                #     data = response.json()
+                #     print("data : ", data)
+
+                #     authorization_url = data.get('authorizationUrl')
+                #     return authorization_url
+                
+                # except requests.exceptions.RequestException as e:
+                #     print(f"Error calling API: {e}")
+                #     return None
             
     except Exception as e:
-        logger.LoggerFactory._LOGGER.info("에러발생 : {}".format(e))
+        # logger.LoggerFactory._LOGGER.info("에러발생 : {}".format(e))
+        print("에러발생 : {}".format(e))
         # return ("시스템 관리자에게 연락하세요.")
         # return jsonify({'authorizationUrl': 'http://localhost:8000/api/oauth2'})
         # return redirect('http://localhost:8000/api/oauth2')
+        
+        try:
+            # response = requests.get('http://localhost:8000/api/oauth2')
+            # response.raise_for_status()  # HTTP 오류 발생 시 예외 발생
+            # data = response.json()
+            response = authorize()
+            print("response : ", response)
+            data = response.json()
+            print("data : ", data)
+            authorization_url = data.get('authorizationUrl')
+            return authorization_url
+        
+        except requests.exceptions.RequestException as e:
+            print(f"Error calling API: {e}")
+            return None
 
 if __name__ == '__main__':
     # app.run(host='0.0.0.0', port=8000, debug=True)

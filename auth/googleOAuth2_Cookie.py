@@ -4,7 +4,7 @@ from flask import jsonify, request, make_response, Blueprint
 import json
 from common import logger, getEnv
 from auth.secretManager import access_secret_version
-from dao.refresh_token import insert_refresh_token
+from dao.refresh_token import insert_refresh_token, select_refresh_token, update_access_token
 import jwt
 
 REDIRECT_URL = getEnv.get_environment_variable('REDIRECT_URL')
@@ -69,19 +69,19 @@ def oauth2callback():
     print("oauth2callback()")
     # logger.LoggerFactory._LOGGER.info("oauth2callback()")
 
-    flow = google_auth_oauthlib.flow.Flow.from_client_config(CLIENT_SECRET, scopes=SCOPES)
-    flow.redirect_uri = REDIRECT_URL
-    
-    authorization_response = flask.request.url
-    
-    flow.fetch_token(authorization_response=authorization_response)
-    credentials = flow.credentials
-    # print("credentials : ", credentials)
-    # print(credentials.__dict__) # flow.credentials 내부 상세 속성 확인(중요)
-
-    id_token_jwt = credentials.id_token
-
     try:
+        flow = google_auth_oauthlib.flow.Flow.from_client_config(CLIENT_SECRET, scopes=SCOPES)
+        flow.redirect_uri = REDIRECT_URL
+        
+        authorization_response = flask.request.url
+        
+        flow.fetch_token(authorization_response=authorization_response)
+        credentials = flow.credentials
+        # print("credentials : ", credentials)
+        # print(credentials.__dict__) # flow.credentials 내부 상세 속성 확인(중요)
+
+        id_token_jwt = credentials.id_token
+
         # JWT 디코딩 (서명 검증 없이)
         decoded_payload = jwt.decode(id_token_jwt, options={"verify_signature": False})
         print("Decoded Payload:", decoded_payload)
@@ -102,9 +102,9 @@ def oauth2callback():
 
         response = make_response(flask.redirect('http://localhost:3000/test'))
         response.set_cookie("token", credentials.token)
-        response.set_cookie("refresh_token", credentials.refresh_token)
-        response.set_cookie("id_token", id_token_jwt)
-        response.set_cookie("email", email)
+        # response.set_cookie("refresh_token", credentials.refresh_token)
+        # response.set_cookie("id_token", id_token_jwt)
+        # response.set_cookie("email", email)
 
         # if 'refresh_token' in request.cookies:
         #     response.delete_cookie('refresh_token')
@@ -121,95 +121,105 @@ def oauth2callback():
         print(f"JWT 디코딩 오류: {e}")
         return make_response("JWT 디코딩 오류", 401)
     
-    # # response = make_response("쿠키 설정 완료!")
-    # response = make_response(flask.redirect('http://localhost:3000/test'))
-    # # response = make_response(flask.redirect('http://localhost:3000'))
-    # # response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000/test")
-    # # response.headers.add("Access-Control-Allow-Credentials", "true")
-    # response.set_cookie("token", credentials.token)
-    # # response.set_cookie("refresh_token", credentials.refresh_token)
-    # response.set_cookie("id_token", credentials.id_token)
-    # insert_refresh_token(credentials.refresh_token, credentials.token, user_id, CLIENT_SECRET['web']['client_id'])
+    except Exception as e:
+        print(f"Access Token 생성 오류: {e}")
+        return make_response("Access Token 생성 오류", 400)
+    
 
-    # return response
-
-
-def checkTokenValidation(token, refreshToken):
-    print("checkTokenValidation()")
+def checkTokenValidation(token):
+    print("checkTokenValidation(token)")
     # print("token : ", token)
-    # logger.LoggerFactory._LOGGER.info("checkTokenValidation()")
+    # logger.LoggerFactory._LOGGER.info("checkTokenValidation(token)")
     """세션에 액세스 토큰 만료 시간이 있고 만료되었는지 확인합니다."""
 
     try:
         tokeninfo_url = 'https://oauth2.googleapis.com/tokeninfo'
         params = {'access_token': token}
 
-        try:
-            response = requests.get(tokeninfo_url, params=params)
-            # response.raise_for_status()  # 상태 코드가 200 OK가 아니면 예외 발생
-            token_info = response.json()
-            print("token_info['expires_in'] : ", token_info['expires_in'])
+        response = requests.get(tokeninfo_url, params=params)
+        # response.raise_for_status()  # 상태 코드가 200 OK가 아니면 예외 발생
 
-            if int(token_info['expires_in']) > 3550:
-                print("Access Token이 유효합니다.")
-                return "Exist"
-            else:
-                # return "Error"
-                # if cookies.get("refresh_token") is not None:
-                if refreshToken is not None:
-                    print("Access Token이 만료됐습니다.")
-                    return "Expired"
-                else:
-                    print("*Refresh Token이 없습니다.")
-                    return "Error"
-            
-        except requests.exceptions.RequestException as e:
-            print(f"tokeninfo 요청 실패: {e}")
-            return "Error"
+        token_info = response.json()
+        print("token_info['expires_in'] : ", token_info['expires_in'])
+
+        if int(token_info['expires_in']) > 3550:
+            print("Access Token이 유효합니다.")
+            # return "Exist"
+            return True
+        
+        else:
+            # return "Expired"
+            return False
     
     except Exception as e:
         print(f"checkTokenValidation() 오류: {e}")
-        return "Error"
+        # return "Error"
+        return False
         # logger.LoggerFactory._LOGGER.info("checkTokenValidation()")
 
 
-def getTokenRefreshed():
-    print("getTokenRefreshed()")
+def getTokenRefreshed(token):
+    print("getTokenRefreshed(token)")
     # logger.LoggerFactory._LOGGER.info("getTokenRefreshed()")
 
-    # flow = google_auth_oauthlib.flow.Flow.from_client_config(CLIENT_SECRET, scopes=SCOPES)
+    try: 
+        refresh_token = select_refresh_token(token)
 
-    cookies = request.cookies  # 모든 쿠키 값을 딕셔너리 형태로 가져옵니다.
-
-    if cookies.get("refresh_token") is not None:
-        refresh_token = cookies.get("refresh_token")
-    
-    # 예시: 토큰 갱신 요청
-    token_url = "https://oauth2.googleapis.com/token"
-    token_data = {
-        "grant_type": "refresh_token",
-        "client_id": CLIENT_SECRET['web']['client_id'],
-        "client_secret": CLIENT_SECRET['web']['client_secret'],
-        "refresh_token": refresh_token
-    }
-
-    try:
-        headers = {'Content-Type': 'application/json'}
-        response = requests.post(token_url, data=json.dumps(token_data), headers=headers)
-        # response.raise_for_status()  # HTTP 오류 발생 시 예외 발생
+        if refresh_token:
+            print("refresh_token : ", refresh_token[0])
         
-        logger.LoggerFactory._LOGGER.info("Cookie에 토큰 갱신 정보를 저장합니다.")
-        return response
+            # 예시: 토큰 갱신 요청
+            token_url = "https://oauth2.googleapis.com/token"
+            token_data = {
+                "grant_type": "refresh_token",
+                "client_id": CLIENT_SECRET['web']['client_id'],
+                "client_secret": CLIENT_SECRET['web']['client_secret'],
+                "refresh_token": refresh_token[0]
+            }
 
-    except requests.exceptions.RequestException as e:
-        logger.LoggerFactory._LOGGER.info(f"오류 발생: {e}")
+            try:
+                headers = {'Content-Type': 'application/json'}
+                response = requests.post(token_url, data=json.dumps(token_data), headers=headers)
+                response.raise_for_status()  # HTTP 오류 발생 시 예외 발생
+                
+                # logger.LoggerFactory._LOGGER.info("Cookie에 토큰 갱신 정보를 저장합니다.")
+                # print("Cookie에 토큰 갱신 정보를 저장합니다. : ", response.json().get('access_token'))
+                print("Access Token이 갱신되었습니다. ")
+                print("Before Access Token : ", token)
+                print("After  Access Token : ", response.json().get('access_token'))
 
-        if response is not None:
-            logger.LoggerFactory._LOGGER.info(f"응답 내용: {response.text}")
-        return None
+                result = update_access_token(response.json().get('access_token'), refresh_token[0])
+
+                if result:
+                    # print("Access Token이 갱신되었습니다.")
+                    return response.json().get('access_token')
+                else:
+                    print("Access Token 갱신 실패")
+                    return None
+
+                # return response
+                # return response.json().get('access_token')
+
+            except requests.exceptions.RequestException as e:
+                # logger.LoggerFactory._LOGGER.info(f"오류 발생: {e}")
+                print(f"오류 발생: {e}")
+
+                if response is not None:
+                    # logger.LoggerFactory._LOGGER.info(f"응답 내용: {response.text}")
+                    print(f"응답 내용: {response.text}")
+                return None
+            
+            except json.JSONDecodeError as e:
+                # logger.LoggerFactory._LOGGER.info(f"JSON 디코딩 오류: {e}, 응답 내용: {response.text}")
+                print(f"JSON 디코딩 오류: {e}, 응답 내용: {response.text}")
+                return None
+
+        else:
+            print("Failed to retrieve refresh token.")
+            return None
     
-    except json.JSONDecodeError as e:
-        logger.LoggerFactory._LOGGER.info(f"JSON 디코딩 오류: {e}, 응답 내용: {response.text}")
+    except Exception as e:
+        print(f"refresh_token 조회 오류: {e}")
         return None
 
 
